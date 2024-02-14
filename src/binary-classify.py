@@ -5,6 +5,10 @@ import torch.optim as optim
 import numpy as np
 import time
 
+print("------------Brain Tumor Classification------------")
+start_time = time.ctime()
+print("Job started at:", start_time)
+
 print("------------Check if CUDA is available-------------")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Device:", device)
@@ -16,7 +20,7 @@ print("Device:", device)
 
 print("------------Important Variables----------------")
 batch_size = 32
-learning_rate = 0.005
+learning_rate = 1e-3
 epochs = 20
 kernel_size = 5
 print("Batch Size:", batch_size)
@@ -29,10 +33,10 @@ print(".")
 print(".")
 print(".")
 training = torch.load('torch-dataset/training.pt')
-# training = training[:256]
+training = training[:256]
 validation = torch.load('torch-dataset/validation.pt')
 testing = torch.load('torch-dataset/testing.pt')
-# testing = testing[:256]
+testing = testing[:256]
 
 d_train = torch.utils.data.DataLoader(training, batch_size=batch_size, shuffle=True)
 d_vali = torch.utils.data.DataLoader(validation, batch_size=batch_size, shuffle=True)
@@ -86,7 +90,7 @@ print("-------------------------------------------------\n")
 
 print("--------------Loss Function and Optimizer---------")
 loss_function = nn.BCELoss()
-optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 print("Loss Function:", loss_function)
 print("Optimizer:", optimizer)
 print("-------------------------------------------------\n")
@@ -145,6 +149,8 @@ with torch.no_grad():
 
 print(f"Test Loss: {running_loss / len(d_test)}, Test Accuracy: {correct / total}")
 print("-------------------------------------------------\n")
-print("-------------------------------------------------")
 
-print("Job ended at:", time.ctime())
+end_time = time.ctime()
+print("Job ended at:", end_time)
+print("-------------------------------------------------\n")
+
