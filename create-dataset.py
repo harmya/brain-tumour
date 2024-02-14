@@ -1,6 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torch.optim as optim
+import torchvision.transforms as T
+import torchvision.models as models
+import torchvision
 import numpy as np
 import random
 import os
@@ -11,11 +15,6 @@ training_yes_tumour_path = 'data-tumor/training/meningioma'
 training_no_tumour_path = 'data-tumor/training/notumor'
 testing_yes_tumour_path = 'data-tumor/testing/meningioma'
 testing_no_tumour_path = 'data-tumor/testing/notumor'
-
-kernel_size = 5
-padding_dimension = (kernel_size - 1) // 2
-print("Padding dimension: ")
-print(padding_dimension)
 # ------------------------------------------------------
 
 
@@ -51,65 +50,55 @@ print(len(testing_no_tumour_files))
 # ------------------------------------------------------
 
 #----------------- Creating Dataset ---------------------
-def process_image(image_path):
-    img = Image.open(image_path)
-    img = img.resize((256, 256))
-    img = img.convert('L')
-    img = torch.tensor(np.array(img))
-    img = img / 255
-    return img
+preprocess = T.Compose([
+    T.Resize((256, 256)),
+    T.ToTensor(),
+    T.Grayscale()
+])
 
-training_yes_tumour_images = []
-training_no_tumour_images = []
-
-testing_yes_tumour_images = []
-testing_no_tumour_images = []
+training = []
+testing = []
 
 for filename in training_yes_tumour_files:
-    training_yes_tumour_images.append(process_image(training_yes_tumour_path + '/' + filename))
+    img = Image.open(training_yes_tumour_path + '/' + filename)
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    training.append([preprocess(img), 1])
 for filename in training_no_tumour_files:
-    training_no_tumour_images.append(process_image(training_no_tumour_path + '/' + filename))
+    img = Image.open(training_no_tumour_path + '/' + filename)
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    training.append([preprocess(img), 0])
 
 for filename in testing_yes_tumour_files:
-    testing_yes_tumour_images.append(process_image(testing_yes_tumour_path + '/' + filename))
+    img = Image.open(testing_yes_tumour_path + '/' + filename)
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    testing.append([preprocess(img), 1])
 for filename in testing_no_tumour_files:
-    testing_no_tumour_images.append(process_image(testing_no_tumour_path + '/' + filename))
+    img = Image.open(testing_no_tumour_path + '/' + filename)
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
+    testing.append([preprocess(img), 0])
 
-training_yes_tumour_labels = torch.ones(len(training_yes_tumour_images))
-training_no_tumour_labels = torch.zeros(len(training_no_tumour_images))
-training_images = training_yes_tumour_images + training_no_tumour_images
-training_labels = torch.cat((training_yes_tumour_labels, training_no_tumour_labels))
-training_dataset = list(zip(training_images, training_labels))
-random.shuffle(training_dataset)
-
-testing_yes_tumour_labels = torch.ones(len(testing_yes_tumour_images))
-testing_no_tumour_labels = torch.zeros(len(testing_no_tumour_images))
-testing_images = testing_yes_tumour_images + testing_no_tumour_images
-testing_labels = torch.cat((testing_yes_tumour_labels, testing_no_tumour_labels))
-testing_dataset = list(zip(testing_images, testing_labels))
-random.shuffle(testing_dataset)
+random.shuffle(training)
+random.shuffle(testing)
+split = int(0.95 * len(training))
+validation = training[split:]
+training = training[:split]
 
 print("Number of training images: ")
-print(len(training_images))
+print(len(training))
+print("Number of validation images: ")
+print(len(validation))
 print("Number of testing images: ")
-print(len(testing_images))
-
-# ------------------------------------------------------
-
-# ----------------- Add Zero Padding ---------------------
-for i in range(len(training_dataset)):
-    training_dataset[i] = (F.pad(training_dataset[i][0], (padding_dimension, padding_dimension, padding_dimension, padding_dimension)), training_dataset[i][1])
-
-for i in range(len(testing_dataset)):
-    testing_dataset[i] = (F.pad(testing_dataset[i][0], (padding_dimension, padding_dimension, padding_dimension, padding_dimension)), testing_dataset[i][1])
-
-print("Shape after padding: ")
-print(training_dataset[0][0].shape)
+print(len(testing))
 
 # ------------------------------------------------------
 
 # ----------------- Save Dataset -------------------------
-torch.save(training_dataset, 'torch-dataset/training-dataset.pt')
-torch.save(testing_dataset, 'torch-dataset/testing-dataset.pt')
+torch.save(training, 'torch-dataset/training.pt')
+torch.save(validation, 'torch-dataset/validation.pt')
+torch.save(testing, 'torch-dataset/testing.pt')
 # ------------------------------------------------------
 
